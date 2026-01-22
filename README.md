@@ -41,7 +41,7 @@
 
   <h2>📦 Installation</h2>
   <pre>
-git clone https://github.com/your-username/budget-tracker-app.git](https://github.com/im-stephenr/budget-tracker-app.git
+git clone https://github.com/im-stephenr/budget-tracker-app.git
 cd budget-tracker-app
 npm install
 npm run dev
