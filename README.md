@@ -1,6 +1,6 @@
 # Car Loan Payment Tracker Mobile App
 
-# Techstack used
+<b>Techstack used</b>
 -VueJS
 -TailwindCSS
 -CapacitorJS
