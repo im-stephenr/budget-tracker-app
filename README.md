@@ -35,14 +35,13 @@
   <ul>
     <li>Android</li>
     <li>iOS</li>
-    <li>Web (Progressive Web App)</li>
   </ul>
 
   <hr />
 
   <h2>📦 Installation</h2>
   <pre>
-git clone https://github.com/your-username/budget-tracker-app.git
+git clone https://github.com/your-username/budget-tracker-app.git](https://github.com/im-stephenr/budget-tracker-app.git
 cd budget-tracker-app
 npm install
 npm run dev
@@ -64,13 +63,6 @@ npx cap sync
   <p>
     The app uses Tailwind CSS to ensure a consistent and modern design, optimized for mobile screens.
     Components are designed with usability and performance in mind.
-  </p>
-
-  <hr />
-
-  <h2>📄 License</h2>
-  <p>
-    This project is licensed under the <strong>MIT License</strong>.
   </p>
 
   <hr />
