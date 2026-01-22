@@ -1,0 +1,70 @@
+@import "tailwindcss";
+html,
+body {
+  font-family: monaco, monospace;
+}
+/* Default Vue Router adds this automatically */
+footer .router-link-active {
+  color: #161817;
+  font-weight: bold !important;
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.4));
+}
+footer .router-link-active > svg {
+  width: calc(var(--spacing) * 6) !important;
+  height: calc(var(--spacing) * 6) !important;
+}
+
+#main_content {
+  background-image: url("/images/piggy.png");
+  background-repeat: no-repeat;
+  background-position: right bottom;
+}
+
+#app_footer {
+  border-top: 1px solid rgb(238, 238, 238);
+  background-color: rgb(255, 255, 255);
+  position: relative;
+  margin-bottom: 40px;
+}
+/* Curved line in the middle */
+#app_footer::before {
+  content: "";
+  position: absolute;
+  top: -1px; /* align with border */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 45px;
+  border-top: 1px solid #fff;
+  border-left: 2px solid rgb(238, 238, 238);
+  border-right: 2px solid rgb(238, 238, 238);
+  border-radius: 0 0 40px 40px;
+}
+
+#app_header {
+  border-bottom: 1px solid rgb(238, 238, 238);
+  background-color: rgb(255, 255, 255);
+  background: #3e0703;
+  background: linear-gradient(
+    90deg,
+    rgba(62, 7, 3, 1) 0%,
+    rgba(102, 11, 5, 1) 50%,
+    rgba(140, 16, 7, 1) 100%
+  );
+}
+
+/* .router-link-exact-active {
+  border-bottom: 2px solid red;
+} */
+
+/* TOAST NOTIF */
+.vue-toastification__toast--top-center {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.vue-toastification__container--top-center {
+  left: 50% !important;
+  transform: translateX(-50%);
+}
