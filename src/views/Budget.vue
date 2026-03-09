@@ -169,50 +169,50 @@ onMounted(async () => {
         <div class="p-1.5 min-w-full inline-block align-middle">
           <div class="overflow-scroll h-screen">
             <table
-              class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700"
+              class="min-w-full divide-y divide-gray-200 "
             >
               <thead>
                 <tr>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500"
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
                   >
                     Amount
                   </th>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500"
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
                   >
                     Month
                   </th>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500"
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
                   >
                     Year
                   </th>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500"
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
                   >
                     Action
                   </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+              <tbody class="divide-y divide-gray-200 ">
                 <tr v-for="(budget, i) in budget_list" :key="i">
                   <td
-                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-neutral-200"
+                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 "
                   >
                     {{ budget.amount }}
                   </td>
                   <td
-                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-neutral-200"
+                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 "
                   >
                     {{ getMonthFullName(budget.month) }}
                   </td>
                   <td
-                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-neutral-200"
+                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 "
                   >
                     {{ budget.year }}
                   </td>

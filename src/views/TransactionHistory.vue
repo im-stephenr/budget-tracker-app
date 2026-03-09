@@ -33,14 +33,48 @@ const form_filter = ref({
   month: current_month.value,
   year: current_year.value,
 });
+const update_link = ref({
+  name: "Edit Transaction",
+  params: {
+    id: 1,
+  },
+});
 
+const delete_link = ref({
+  id: 1,
+  image_path: "",
+});
+
+const purposes = ref([]);
+const selected_purpose_id = ref(null);
+
+// set url for Update/Delete Button
+const setActionsUrl = (id, image_path = "") => {
+  update_link.value.params.id = id;
+  delete_link.value.id = id;
+  delete_link.value.image_path = image_path;
+};
+
+// Load Purposes
+const loadPurposes = async () => {
+  const db = getDB();
+
+  try {
+    const result = await db.query("SELECT * FROM purposes");
+    if (result.values.length > 0) {
+      purposes.value = result.values;
+    }
+  } catch (err) {
+    console.log("Error", err);
+  }
+};
 // Load Year
 const loadYear = async () => {
   const db = getDB();
 
   try {
     const result = await db.query(
-      "SELECT DISTINCT(strftime('%Y', date)) as year FROM transactions"
+      "SELECT DISTINCT(strftime('%Y', date)) as year FROM transactions",
     );
     if (result.values.length > 0) {
       year_options.value = result.values;
@@ -51,12 +85,14 @@ const loadYear = async () => {
 };
 
 // Load Transactions
-const loadTransactions = async (month, year) => {
+const loadTransactions = async (month, year, purpose = "All") => {
   isLoading.value = true;
   // Load transactions from the database based on the selected month and year
   const db = getDB();
   let month_q = "";
   let year_q = "";
+  let purpose_q = "";
+
   if (month != "All") {
     month_q = `AND strftime('%m', date) = '${month
       .toString()
@@ -65,8 +101,11 @@ const loadTransactions = async (month, year) => {
   if (year != "All") {
     year_q = ` AND strftime('%Y', date) = '${year}'`;
   }
+  if (purpose != "All") {
+    purpose_q = ` AND purposes.id = '${purpose}'`;
+  }
   const result = await db.query(
-    `SELECT transactions.*, categories.name as category, payment_methods.name as payment_method, purposes.name as purpose, strftime('%Y', date) AS year, strftime('%m', date) AS month, strftime('%Y-%m', date) AS year_month FROM transactions LEFT JOIN categories ON transactions.category_id=categories.id LEFT JOIN payment_methods ON transactions.payment_method_id=payment_methods.id LEFT JOIN purposes ON purposes.id=transactions.purpose_id WHERE 1 ${month_q} ${year_q} ORDER BY datetime(date) DESC`
+    `SELECT transactions.*, categories.name as category, purposes.id as purpose_id, payment_methods.name as payment_method, purposes.name as purpose, strftime('%Y', date) AS year, strftime('%m', date) AS month, strftime('%Y-%m', date) AS year_month FROM transactions LEFT JOIN categories ON transactions.category_id=categories.id LEFT JOIN payment_methods ON transactions.payment_method_id=payment_methods.id LEFT JOIN purposes ON purposes.id=transactions.purpose_id WHERE 1 ${month_q} ${year_q}  ${purpose_q} ORDER BY datetime(transactions.date) DESC, transactions.id DESC`,
   );
   for (const p of result.values) {
     image_previews.value[p.image_path] = await getPhotoUrl(p.image_path);
@@ -117,7 +156,10 @@ const handleDelete = async (transaction_id, image_path) => {
   toast.success("Transaction Deleted Successfully!", {
     position: "top",
   });
-  loadTransactions();
+  // Reload Transactions
+  await loadTransactions(form_filter.value.month, form_filter.value.year);
+  // Close modal
+  document.getElementById("actions_dialog_close")?.click();
 };
 
 // Helper: Convert stored file path back into usable <img> src
@@ -157,6 +199,7 @@ const formatMonthYear = (dateString) => {
 
 const handleFilter = async () => {
   await loadTransactions(form_filter.value.month, form_filter.value.year);
+  selected_purpose_id.value = null;
 };
 
 // Display clicked image to modal
@@ -166,9 +209,20 @@ const displayReceiptModal = (src) => {
   receipt_image_modal.value = src;
 };
 
+const handleFilterByPurpose = async (purpose_id) => {
+  selected_purpose_id.value = purpose_id === "All" ? null : purpose_id;
+
+  await loadTransactions(
+    form_filter.value.month,
+    form_filter.value.year,
+    purpose_id,
+  );
+};
+
 onMounted(async () => {
   await loadTransactions(current_month.value, current_year.value);
   await loadYear();
+  await loadPurposes();
 });
 </script>
 <template>
@@ -219,6 +273,94 @@ onMounted(async () => {
     </dialog>
   </el-dialog>
   <!-- END OF IMAGE MODAL -->
+
+  <!-- ACTIONS MODAL -->
+  <el-dialog>
+    <dialog
+      id="actions_dialog"
+      aria-labelledby="dialog-title"
+      class="fixed top-30 inset-0 size-auto max-h-none max-w-none overflow-y-auto bg-transparent backdrop:bg-transparent"
+    >
+      <el-dialog-backdrop
+        class="fixed inset-0 bg-gray-500/75 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
+      ></el-dialog-backdrop>
+
+      <!-- Removed min-h-full  -->
+      <div
+        tabindex="0"
+        class="flex items-end justify-center p-4 text-center focus:outline-none sm:items-center sm:p-0"
+      >
+        <el-dialog-panel
+          class="relative w-sm transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all data-closed:translate-y-4 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in sm:my-8 sm:w-full sm:max-w-lg data-closed:sm:translate-y-0 data-closed:sm:scale-95"
+        >
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h1 class="text-lg mb-4">Action</h1>
+                <div class="mt-2 flex w-full justify-center-safe gap-4">
+                  <router-link
+                    :to="update_link"
+                    class="border w-50 bg-green-900 border-green-900 text-white rounded-sm p-2"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-6 mx-auto"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                      />
+                    </svg>
+                    Update
+                  </router-link>
+                  <button
+                    class="border w-50 bg-red-900 border-red-900 text-white rounded-sm p-2"
+                    @click.prevent="
+                      handleDelete(delete_link.id, delete_link.image_path)
+                    "
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-6 mx-auto"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                      />
+                    </svg>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+            <button
+              id="actions_dialog_close"
+              type="button"
+              command="close"
+              commandfor="actions_dialog"
+              class="mt-1 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-xs font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+            >
+              Close
+            </button>
+          </div>
+        </el-dialog-panel>
+      </div>
+    </dialog>
+  </el-dialog>
+  <!-- END OF ACTIONS MODAL -->
+
   <div class="overflow-x-auto p-2">
     <div class="overflow-hidden">
       <!-- Select options -->
@@ -285,7 +427,7 @@ onMounted(async () => {
         </div>
       </form>
       <!-- LOADING ICON -->
-      <!-- <div
+      <div
         v-if="isLoading"
         class="grid min-h-[140px] w-full place-items-center overflow-x-scroll rounded-lg p-6 lg:overflow-visible"
       >
@@ -313,119 +455,125 @@ onMounted(async () => {
             class="text-gray-900"
           ></path>
         </svg>
-      </div> -->
+      </div>
+
+      <!-- LIST OF PURPOSES FOR FILTER -->
+      <button
+        :class="`p-1 pl-3 pr-3 ${
+          selected_purpose_id === null ? 'bg-red-900 text-white' : 'bg-gray-200'
+        } mb-2 mr-2 shadow-sm rounded-4xl text-xs`"
+        @click.prevent="handleFilterByPurpose('All')"
+      >
+        All
+      </button>
+      <button
+        v-for="purpose in purposes"
+        :key="purpose.id"
+        :class="`p-1 pl-3 pr-3 ${
+          selected_purpose_id !== null && selected_purpose_id === purpose.id
+            ? 'bg-red-900 text-white'
+            : 'bg-gray-200'
+        } mb-2 mr-2 shadow-sm rounded-4xl text-xs`"
+        @click.prevent="handleFilterByPurpose(purpose.id)"
+      >
+        {{ purpose.name }}
+      </button>
 
       <!-- Card -->
-      <div v-for="i in 5" :key="i">
+      <div
+        class="mb-5 mt-5"
+        v-for="(items, month_year) in transaction_list"
+        :key="month_year"
+      >
         <p class="text-sm font-bold text-gray-400 italic text-center">
           <!-- // adding 01 (Day number) so the Y-m-d format will be complete as it is needed when reformatting the date to Month name and Year -->
           {{ formatMonthYear(month_year + "-01") }}
         </p>
-        <div
-          v-for="i in 5"
-          :key="i"
-          class="border rounded-sm border-gray-200 m-auto p-2 shadow-sm bg-gray-50 mb-4"
-        >
-          <h1 class="font-bold inline-block text-lg">TEST</h1>
-          <div class="inline">
-            <!-- BUTTONS -->
-            <router-link
-              @click="updatePage"
-              class="inline-flex ml-1 font-semibold rounded-lg border border-transparent text-green-600 hover:text-green-800 focus:outline-hidden focus:text-green-800 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="size-5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
-                />
-              </svg>
-            </router-link>
-            <!-- DELETE -->
-            <button
-              type="button"
-              class="inline-flex float-right items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-red-600 hover:text-red-800 focus:outline-hidden disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="size-5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                />
-              </svg>
-            </button>
-          </div>
 
+        <div
+          v-for="(list, i) in items"
+          :key="i"
+          class="border rounded-sm border-gray-200 m-auto shadow-sm p-1 bg-gray-50 mb-2"
+        >
           <div class="w-full flex">
             <!-- IMAGE -->
             <div class="w-30">
-              <button command="show-modal" commandfor="dialog" class="w-32">
+              <button command="show-modal" commandfor="dialog" class="w-20">
                 <img
                   class="border border-gray-100 p-1"
-                  :src="`/images/shop-placeholder.png`"
+                  @click="displayReceiptModal(image_previews[list.image_path])"
+                  :src="`${
+                    list.image_path != ''
+                      ? image_previews[list.image_path]
+                      : '/images/shop-placeholder.png'
+                  }`"
                   alt=""
                 />
               </button>
-
-              <!-- DATE -->
-              <div class="w-full text-center relative text-gray-500 mt-1">
-                <p style="font-size: 0.6rem" class="italic font-bold">
-                  2025-01-01
-                </p>
-              </div>
             </div>
-            <!-- Content -->
-            <div class="w-70 flex ml-2">
-              <div class="w-60">
-                <!-- PURCHASE SOURCE -->
-                <h1 class="font-medium text-sm">TEST</h1>
-                <!-- PURPOSE -->
-                <p style="font-size: 10px" class="text-gray-400 relative -mt-1">
-                  PURPOSE
-                </p>
-                <!-- Note -->
-                <div class="w-full mt-1 relative text-gray-500">
-                  <p class="text-xs italic">NOTE TEST</p>
+            <button
+              command="show-modal"
+              commandfor="actions_dialog"
+              class="text-left"
+              @click="setActionsUrl(list.id, list.image_path)"
+            >
+              <!-- Content -->
+              <div class="w-70 flex">
+                <div class="w-60">
+                  <!-- PURCHASE SOURCE -->
+                  <h1 class="font-medium text-sm">{{ list.product }}</h1>
+                  <!-- PURPOSE -->
+                  <p class="text-gray-400 text-[0.6rem] relative -mt-[0.5]">
+                    <b>{{ list.category }}</b> • {{ list.purpose }}
+                  </p>
+                  <!-- Note -->
+                  <div class="w-full mt-1 relative text-gray-500">
+                    <p class="text-xs italic note-limit leading-none">
+                      {{ list.note }}
+                    </p>
+                    <!-- DATE -->
+                    <div class="w-full text-left relative text-gray-500 mt-1">
+                      <p class="text-[0.6rem] italic font-bold">
+                        {{ formatDate(list.date) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-40 relative">
+                  <!-- PRICE -->
+                  <p
+                    style="font-family: Arial, Helvetica, sans-serif !important"
+                    class="text-sm absolute bottom-5 right-5 font-bold"
+                  >
+                    {{
+                      Number(list.amount).toLocaleString("en-US", {
+                        style: "currency",
+                        currency: "PHP",
+                        minimumFractionDigits: 2,
+                      })
+                    }}
+                  </p>
+
+                  <!-- PAYMENT METHOD -->
+                  <p
+                    class="text-[0.6rem] absolute right-5 bottom-1 text-red-300"
+                  >
+                    {{ list.payment_method }}
+                  </p>
                 </div>
               </div>
-              <div class="w-40 relative">
-                <!-- PRICE -->
-                <p
-                  style="font-family: Arial, Helvetica, sans-serif !important"
-                  class="text-sm absolute bottom-1 text-right mt-6 font-bold"
-                >
-                  100
-                </p>
-
-                <!-- PAYMENT METHOD -->
-                <p class="text-xs absolute bottom-8 text-red-300">Cash</p>
-              </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
-      <!-- <div
-        class="w-full text-center"
+      <div
+        class="w-full text-center mt-5"
         v-if="Object.keys(transaction_list).length === 0"
       >
         <h1 class="text-lg text-gray-400 italic">
           You don't have transaction for this month.
         </h1>
-      </div> -->
+      </div>
     </div>
   </div>
 </template>

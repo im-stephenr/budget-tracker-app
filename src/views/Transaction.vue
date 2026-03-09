@@ -35,7 +35,7 @@ const handleSubmit = async () => {
         form.value.image,
         form.value.note,
         form.value.purpose,
-      ]
+      ],
     );
     toast.success("Transaction Added Successfully!", {
       position: "top",
@@ -149,7 +149,7 @@ onMounted(async () => {
     <form class="w-full px-5 mx-auto mt-5" @submit.prevent="handleSubmit">
       <div class="relative z-0 w-full mb-5 group">
         <input
-          type="text"
+          type="number"
           name="amount"
           id="amount"
           class="block py-2.5 px-0 w-full text-sm text-heading bg-transparent border-0 border-gray-400 border-b-2 border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"

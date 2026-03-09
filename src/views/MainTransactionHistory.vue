@@ -40,7 +40,7 @@ const loadYear = async () => {
 
   try {
     const result = await db.query(
-      "SELECT DISTINCT(strftime('%Y', date)) as year FROM transactions"
+      "SELECT DISTINCT(strftime('%Y', date)) as year FROM transactions",
     );
     if (result.values.length > 0) {
       year_options.value = result.values;
@@ -66,7 +66,7 @@ const loadTransactions = async (month, year) => {
     year_q = ` AND strftime('%Y', date) = '${year}'`;
   }
   const result = await db.query(
-    `SELECT transactions.*, categories.name as category, payment_methods.name as payment_method, purposes.name as purpose, strftime('%Y', date) AS year, strftime('%m', date) AS month, strftime('%Y-%m', date) AS year_month FROM transactions LEFT JOIN categories ON transactions.category_id=categories.id LEFT JOIN payment_methods ON transactions.payment_method_id=payment_methods.id LEFT JOIN purposes ON purposes.id=transactions.purpose_id WHERE 1 ${month_q} ${year_q} ORDER BY datetime(date) DESC`
+    `SELECT transactions.*, categories.name as category, payment_methods.name as payment_method, purposes.name as purpose, strftime('%Y', date) AS year, strftime('%m', date) AS month, strftime('%Y-%m', date) AS year_month FROM transactions LEFT JOIN categories ON transactions.category_id=categories.id LEFT JOIN payment_methods ON transactions.payment_method_id=payment_methods.id LEFT JOIN purposes ON purposes.id=transactions.purpose_id WHERE 1 ${month_q} ${year_q} ORDER BY datetime(date) DESC`,
   );
   for (const p of result.values) {
     image_previews.value[p.image_path] = await getPhotoUrl(p.image_path);

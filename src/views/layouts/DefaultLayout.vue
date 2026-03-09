@@ -13,8 +13,10 @@ const currentPage = (page) => {
   <div class="flex h-screen justify-between flex-col">
     <Header :pageName="pageName" :currentPage="currentPage" />
     <main class="mb-auto h-screen overflow-y-scroll" id="main_content">
-      <!-- define emit change-title, calls currentPage function when change-title is emitted to child components inside router-view -->
-      <router-view @change-title="currentPage" />
+      <transition name="slide">
+        <!-- define emit change-title, calls currentPage function when change-title is emitted to child components inside router-view -->
+        <router-view @change-title="currentPage" />
+      </transition>
     </main>
     <Footer :currentPage="currentPage" />
   </div>
