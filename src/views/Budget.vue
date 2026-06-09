@@ -34,20 +34,20 @@ const handleSubmit = async () => {
     // Check first if budget already exist
     let check = await db.query(
       "SELECT * FROM budget WHERE month=? AND year=?",
-      [form.value.month, form.value.year]
+      [form.value.month, form.value.year],
     );
 
     if (check.values.length > 0) {
       // UPDATE THE BUDGET
       let save = await db.run(
         "UPDATE budget SET amount=? WHERE month=? AND year=?",
-        [form.value.budget, form.value.month, form.value.year]
+        [form.value.budget, form.value.month, form.value.year],
       );
     } else {
       // INSERT BUDGET
       let save = await db.run(
         "INSERT INTO budget(amount, month, year) VALUES(?,?,?)",
-        [form.value.budget, form.value.month, form.value.year]
+        [form.value.budget, form.value.month, form.value.year],
       );
     }
     // clear form
@@ -90,9 +90,7 @@ const handleDelete = async (id) => {
 const loadBudget = async () => {
   try {
     const db = getDB();
-    let fetch = await db.query(
-      "SELECT * FROM budget ORDER BY month DESC, year DESC"
-    );
+    let fetch = await db.query("SELECT * FROM budget ORDER BY id DESC");
     if (fetch.values.length > 0) {
       budget_list.value = fetch.values;
     }
@@ -168,51 +166,49 @@ onMounted(async () => {
       <div class="-m-1.5 overflow-x-auto">
         <div class="p-1.5 min-w-full inline-block align-middle">
           <div class="overflow-scroll h-screen">
-            <table
-              class="min-w-full divide-y divide-gray-200 "
-            >
+            <table class="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
                   >
                     Amount
                   </th>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
                   >
                     Month
                   </th>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
                   >
                     Year
                   </th>
                   <th
                     scope="col"
-                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase "
+                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
                   >
                     Action
                   </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-200 ">
+              <tbody class="divide-y divide-gray-200">
                 <tr v-for="(budget, i) in budget_list" :key="i">
                   <td
-                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 "
+                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
                   >
                     {{ budget.amount }}
                   </td>
                   <td
-                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 "
+                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
                   >
                     {{ getMonthFullName(budget.month) }}
                   </td>
                   <td
-                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 "
+                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
                   >
                     {{ budget.year }}
                   </td>

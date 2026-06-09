@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { getDB } from "/src/services/database";
+import ProgressBarTransactions from "./components/ProgressBarTransactions.vue";
+import ProgressBarPurposes from "./components/ProgressBarPurposes.vue";
 
 const activeKey = ref(0);
 
@@ -38,6 +40,8 @@ const form_filter = ref({
   year: current_year.value,
 });
 const year_options = ref([]);
+const total_transaction_count = ref(0);
+const piggy_balance = ref("/images/pighappy.png");
 
 const todaysTotalExpenseVisibility = computed(() => {
   // always converts to number to avoid string/number mismatches
@@ -79,6 +83,8 @@ const changeMonth = async (type) => {
     await loadBudget(current_month_index, form_filter.value.year);
     await loadTransactions(current_month_index, form_filter.value.year);
   }
+
+  console.log(current_month_index);
   activeKey.value++;
 };
 
@@ -86,7 +92,6 @@ const changeMonth = async (type) => {
 const loadBudget = async (month, year) => {
   const db = getDB();
   month++;
-
   try {
     const result = await db.query(
       "SELECT * FROM budget WHERE month=? AND year=?",
@@ -111,6 +116,7 @@ const loadTransactions = async (month, year) => {
   try {
     const monthStr = month.toString().padStart(2, "0");
     const yearStr = year.toString();
+    console.log("monthStr", monthStr);
     // fetch list
     const result_purchase_source = await db.query(
       "SELECT categories.id, categories.name, categories.color, SUM(transactions.amount) as total_expense FROM categories LEFT JOIN transactions ON transactions.category_id=categories.id WHERE strftime('%m', transactions.date) = ? AND strftime('%Y', transactions.date)=? GROUP BY categories.id, categories.name ORDER BY SUM(transactions.amount) DESC",
@@ -118,6 +124,8 @@ const loadTransactions = async (month, year) => {
     );
     if (result_purchase_source.values.length > 0) {
       transaction_data_purchase_source.value = result_purchase_source.values;
+    } else {
+      transaction_data_purchase_source.value = [];
     }
 
     const result_purpose = await db.query(
@@ -126,6 +134,8 @@ const loadTransactions = async (month, year) => {
     );
     if (result_purpose.values.length > 0) {
       transaction_data_purpose.value = result_purpose.values;
+    } else {
+      transaction_data_purpose.value = [];
     }
 
     // Fetch total (separated as it causes issue if combined above returning 1 row only)
@@ -138,13 +148,31 @@ const loadTransactions = async (month, year) => {
     const todays_total = await db.query(
       "SELECT SUM(amount) AS total_expense FROM transactions WHERE date = date('now')",
     );
+
+    // Fetch total transactions
+    const total_transactions = await db.query(
+      "SELECT COUNT(*) AS total_transaction_count FROM transactions WHERE strftime('%m', date)=? AND strftime('%Y', date)=?",
+      [monthStr, yearStr],
+    );
     // Total expense
     total_expense.value = total.values[0].total_expense || 0;
     // Current balance
     current_balance.value = budget_data?.value.amount - total_expense.value;
+    
+    
     // Progress bar for total expense
     pb_total_expense.value =
       (total_expense?.value / budget_data?.value.amount) * 100 || 0;
+
+      // Dynamic Piggy Image under  Balance card
+    if(parseFloat(pb_total_expense.value) >= 100 ){
+      piggy_balance.value="/images/pigsad.png";
+    }else if(parseFloat(pb_total_expense.value) >= 80 ){
+      piggy_balance.value="/images/pigangry.png";
+    }else{
+      piggy_balance.value="/images/pighappy.png";
+    }
+
 
     // Today's total expense
     todays_total_expense.value = todays_total.values[0].total_expense || 0;
@@ -152,6 +180,9 @@ const loadTransactions = async (month, year) => {
     pb_todays_total_expense.value =
       (todays_total_expense?.value / budget_data?.value.amount) * 100 || 0;
     total_expense.value = total.values[0].total_expense || 0;
+    // Total Transactions count
+    total_transaction_count.value =
+      total_transactions.values[0].total_transaction_count || 0;
   } catch (err) {
     console.log("Error", err);
   }
@@ -271,19 +302,19 @@ onMounted(async () => {
     <transition name="content-slide" mode="out-in">
       <div :key="activeKey" class="content">
         <!-- Cards -->
-        <div class="flex flex-col">
+        <div class="grid grid-cols-2">
           <!-- Budget -->
           <div
-            class="border border-[#6d0f09] rounded m-3 p-3 flex bg-[#8C1007] shadow-md"
+            class="border border-gray-400 rounded-md m-2 p-2 flex bg-white shadow-sm"
           >
-            <div class="h-full my-auto">
+            <div class="h-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width=".5"
+                stroke-width="1"
                 stroke="currentColor"
-                class="size-15 text-white"
+                class="size-8 text-[#8C1007]"
               >
                 <path
                   stroke-linecap="round"
@@ -292,11 +323,11 @@ onMounted(async () => {
                 />
               </svg>
             </div>
-            <div class="w-full px-3 text-left">
-              <p class="text-white font-bold text-lg">Budget</p>
+            <div class="w-full px-2 text-left">
+              <p class="text-[#8C1007] font-medium text-md">Budget</p>
               <p
                 style="font-family: Arial, Helvetica, sans-serif !important"
-                class="font-bold text-xl text-white"
+                class="font-bold text-md text-[#8C1007]"
               >
                 {{
                   Number(budget_data?.amount).toLocaleString("en-US", {
@@ -310,16 +341,16 @@ onMounted(async () => {
           </div>
           <!-- Expense -->
           <div
-            class="border border-[#6d0f09] rounded m-3 p-3 flex bg-[#8C1007] shadow-md"
+            class="border border-gray-400 rounded-md m-2 p-2 flex bg-white shadow-sm"
           >
-            <div class="h-full my-auto">
+            <div class="h-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width=".5"
+                stroke-width="1"
                 stroke="currentColor"
-                class="size-15 text-white"
+                class="size-8 text-[#8C1007]"
               >
                 <path
                   stroke-linecap="round"
@@ -328,11 +359,11 @@ onMounted(async () => {
                 />
               </svg>
             </div>
-            <div class="w-full px-3 text-left">
-              <p class="text-white font-bold text-lg">Expense</p>
+            <div class="w-full px-2 text-left">
+              <p class="text-[#8C1007] font-medium text-md">Expense</p>
               <p
                 style="font-family: Arial, Helvetica, sans-serif !important"
-                class="font-bold text-xl text-white"
+                class="font-bold text-md text-[#8C1007]"
               >
                 {{
                   Number(total_expense).toLocaleString("en-US", {
@@ -344,18 +375,48 @@ onMounted(async () => {
               </p>
             </div>
           </div>
-          <!-- Remaining Balance -->
+          <!-- Total Transaction -->
           <div
-            class="border border-[#6d0f09] rounded m-3 p-3 flex bg-[#8C1007] shadow-md"
+            class="border border-gray-400 rounded-md m-2 p-2 flex bg-white shadow-sm"
           >
-            <div class="h-full my-auto">
+            <div class="h-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width=".5"
+                stroke-width="1"
                 stroke="currentColor"
-                class="size-15 text-white"
+                class="size-8 text-[#8C1007]"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"
+                />
+              </svg>
+            </div>
+            <div class="w-full px-2 text-left">
+              <p class="text-[#8C1007] font-medium text-md">Transactions</p>
+              <p
+                style="font-family: Arial, Helvetica, sans-serif !important"
+                class="font-bold text-md text-[#8C1007]"
+              >
+                {{ total_transaction_count }}
+              </p>
+            </div>
+          </div>
+          <!-- Remaining Balance -->
+          <div
+            class="border border-[#6d0f09] rounded-md m-2 p-2 flex bg-[#8C1007] shadow-sm"
+          >
+            <div class="h-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1"
+                stroke="currentColor"
+                class="size-8 text-white"
               >
                 <path
                   stroke-linecap="round"
@@ -364,11 +425,12 @@ onMounted(async () => {
                 />
               </svg>
             </div>
-            <div class="w-full px-3 text-left">
-              <p class="text-white font-bold text-lg">Remaining Balance</p>
+            <div class="w-full px-2 text-left relative z-10">
+              <p class="text-white font-medium text-md">Balance</p>
+              <img class="piggy-balance" :src="`${piggy_balance}`"></img>
               <p
                 style="font-family: Arial, Helvetica, sans-serif !important"
-                class="font-bold text-xl text-white"
+                class="font-bold text-md text-white"
               >
                 {{
                   Number(current_balance).toLocaleString("en-US", {
@@ -384,47 +446,62 @@ onMounted(async () => {
 
         <!-- PROGRESS BAR -->
         <!-- Total Progress bar -->
-        <div class="flex flex-col m-4">
-          <div>
-            <h1 class="text-sm float-left font-bold">Total Expense</h1>
-            <h1
-              class="text-xs mt-1 float-right italic"
-              style="font-family: Arial, Helvetica, sans-serif !important"
-            >
-              <b>
+        <div
+          class="text-center mt-10"
+          v-if="transaction_data_purpose.length === 0"
+        >
+          No Transaction for this month.
+        </div>
+        <div v-else class="flex flex-col m-2">
+          <!-- TOTAL EXPENSE -->
+          <div class="rounded-md p-5 bg-[#8C1007] shadow-sm">
+            <div>
+              <h1 class="text-sm text-white float-left font-bold">
+                Total Expense
+              </h1>
+              <h1
+                class="text-xs text-white mt-1 float-right italic"
+                style="font-family: Arial, Helvetica, sans-serif !important"
+              >
+                <b>
+                  {{
+                    Number(total_expense).toLocaleString("en-US", {
+                      style: "currency",
+                      currency: "PHP",
+                      minimumFractionDigits: 2,
+                    })
+                  }}
+                </b>
+                of
                 {{
-                  Number(total_expense).toLocaleString("en-US", {
+                  Number(budget_data?.amount).toLocaleString("en-US", {
                     style: "currency",
                     currency: "PHP",
                     minimumFractionDigits: 2,
                   })
                 }}
-              </b>
-              of
-              {{
-                Number(budget_data?.amount).toLocaleString("en-US", {
-                  style: "currency",
-                  currency: "PHP",
-                  minimumFractionDigits: 2,
-                })
-              }}
-            </h1>
-          </div>
+              </h1>
+            </div>
 
-          <div class="w-full bg-gray-200 rounded-full">
-            <div
-              class="bg-red-500 text-xs font-medium text-white text-center p-0.5 leading-none rounded-full h-4 flex items-center justify-center"
-              :style="`width: ${
-                pb_total_expense > 100 ? 100 : pb_total_expense.toFixed(2)
-              }%;`"
-            >
-              {{ pb_total_expense?.toFixed(2) }}%
+            <div class="w-full mt-5 bg-gray-200 rounded-full relative">
+              <div
+                class="bg-red-500 text-xs font-medium text-white text-center p-0.5 leading-none rounded-full h-4 flex items-center justify-center"
+                :style="`width: ${
+                  pb_total_expense > 100 ? 100 : pb_total_expense.toFixed(2)
+                }%;`"
+              >
+                <span class="percent-num">
+                  {{ pb_total_expense?.toFixed(2) }}%</span
+                >
+              </div>
             </div>
           </div>
+          <!-- END OF TOTAL EXPENSE -->
+
           <!-- Today's Total Expense -->
           <!-- If Selected month / year = current month / year show the today's total expense -->
           <div v-if="todaysTotalExpenseVisibility" class="mt-4">
-            <h1 class="text-sm float-left font-bold">
+            <h1 class="text-sm text-center font-bold border bg-gray-100 border-gray-400 rounded-sm p-2 shadow-sm">
               Today's Total Expense (<b
                 class="text-red-700"
                 style="font-family: Arial, Helvetica, sans-serif !important"
@@ -442,128 +519,19 @@ onMounted(async () => {
 
           <!-- Budget Breakdown -->
           <h1 class="text-sm float-left font-bold mt-5">Budget Breakdown</h1>
-          <!-- Purchases source progress bars -->
-          <h1 class="text-sm text-center text-[#8C1007] font-bold mt-5">
-            Purchase Source
-          </h1>
-          <div
-            v-for="(transaction, i) in transaction_data_purchase_source"
-            :key="i"
-            class="m-2"
-          >
-            <div>
-              <p class="text-xs float-left">{{ transaction.name }}</p>
-              <p
-                class="text-xs float-right"
-                style="font-family: Arial, Helvetica, sans-serif !important"
-              >
-                <b>
-                  {{
-                    budget_data?.amount
-                      ? Number(transaction.total_expense).toLocaleString(
-                          "en-US",
-                          {
-                            style: "currency",
-                            currency: "PHP",
-                            minimumFractionDigits: 2,
-                          },
-                        )
-                      : Number(0).toLocaleString("en-US", {
-                          style: "currency",
-                          currency: "PHP",
-                          minimumFractionDigits: 2,
-                        })
-                  }}
-                </b>
-              </p>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full mt-4">
-              <div
-                :class="`text-xs font-medium text-white text-center p-0.5 leading-none rounded-full h-4 flex items-center justify-center`"
-                :style="
-                  (() => {
-                    const amount = budget_data?.amount || 0;
-                    const percentage = amount
-                      ? Math.min(
-                          (transaction.total_expense / amount) * 100,
-                          100,
-                        )
-                      : 0;
-
-                    return `width:${percentage}%; background-color:${transaction.color.toUpperCase()}`;
-                  })()
-                "
-              >
-                {{
-                  budget_data?.amount
-                    ? (
-                        (transaction.total_expense / budget_data.amount) *
-                        100
-                      ).toFixed(2)
-                    : "0.00"
-                }}%
-              </div>
-            </div>
-          </div>
-          <!-- Purposes progress bar -->
-          <h1 class="text-sm text-center text-[#8C1007] font-bold mt-5">
-            Purposes
-          </h1>
-          <div
-            v-for="(purpose, i) in transaction_data_purpose"
-            :key="i"
-            class="m-2"
-          >
-            <div>
-              <p class="text-xs float-left">{{ purpose.name }}</p>
-              <p
-                class="text-xs float-right"
-                style="font-family: Arial, Helvetica, sans-serif !important"
-              >
-                <b>
-                  {{
-                    budget_data?.amount
-                      ? Number(purpose.total_expense).toLocaleString("en-US", {
-                          style: "currency",
-                          currency: "PHP",
-                          minimumFractionDigits: 2,
-                        })
-                      : Number(0).toLocaleString("en-US", {
-                          style: "currency",
-                          currency: "PHP",
-                          minimumFractionDigits: 2,
-                        })
-                  }}
-                </b>
-              </p>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full mt-4">
-              <div
-                :class="`bg-red-400 text-xs font-medium text-white text-center p-0.5 leading-none rounded-full h-4 flex items-center justify-center`"
-                :style="
-                  (() => {
-                    const amount_purpose = budget_data?.amount || 0;
-                    const percentage_purpose = amount_purpose
-                      ? Math.min(
-                          (purpose.total_expense / amount_purpose) * 100,
-                          100,
-                        )
-                      : 0;
-
-                    return `width:${percentage_purpose}%;}`;
-                  })()
-                "
-              >
-                {{
-                  budget_data?.amount
-                    ? (
-                        (purpose.total_expense / budget_data.amount) *
-                        100
-                      ).toFixed(2)
-                    : "0.00"
-                }}%
-              </div>
-            </div>
+          <div class="bg-gray-100 p-1 rounded-sm">
+            <!-- Purchases source progress bars -->
+            <h1 class="text-sm text-center text-[#8C1007] font-bold mt-2">
+              Purchase Source
+            </h1>
+            <ProgressBarTransactions :list="transaction_data_purchase_source" :budget_data="budget_data"/>
+            <!-- PROGRESS BAR STARTS -->
+            <!-- PROGRESS BAR END -->
+            <!-- Purposes progress bar -->
+            <h1 class="text-sm text-center text-[#8C1007] font-bold mt-5">
+              Purposes
+            </h1>
+            <ProgressBarPurposes :list="transaction_data_purpose" :budget_data="budget_data"/>
           </div>
         </div>
       </div>

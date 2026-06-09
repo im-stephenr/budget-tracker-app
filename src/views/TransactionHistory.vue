@@ -56,14 +56,46 @@ const setActionsUrl = (id, image_path = "") => {
 };
 
 // Load Purposes
-const loadPurposes = async () => {
+const loadPurposes = async (month, year) => {
   const db = getDB();
 
+  let conditions = "";
+
+  if (month != "All") {
+    conditions += `
+      AND strftime('%m', transactions.date) = '${month
+        .toString()
+        .padStart(2, "0")}'
+    `;
+  }
+
+  if (year != "All") {
+    conditions += `
+      AND strftime('%Y', transactions.date) = '${year}'
+    `;
+  }
+
   try {
-    const result = await db.query("SELECT * FROM purposes");
-    if (result.values.length > 0) {
-      purposes.value = result.values;
-    }
+    const result = await db.query(`
+      SELECT 
+        purposes.*,
+        COUNT(
+          CASE
+            WHEN transactions.id IS NOT NULL
+            ${conditions}
+            THEN 1
+          END
+        ) AS count_per_purpose
+      FROM purposes
+      LEFT JOIN transactions
+        ON transactions.purpose_id = purposes.id
+      GROUP BY purposes.id
+      ORDER BY purposes.name
+    `);
+
+    purposes.value = result.values || [];
+
+    console.log(result.values);
   } catch (err) {
     console.log("Error", err);
   }
@@ -199,6 +231,7 @@ const formatMonthYear = (dateString) => {
 
 const handleFilter = async () => {
   await loadTransactions(form_filter.value.month, form_filter.value.year);
+  await loadPurposes(form_filter.value.month, form_filter.value.year);
   selected_purpose_id.value = null;
 };
 
@@ -222,7 +255,7 @@ const handleFilterByPurpose = async (purpose_id) => {
 onMounted(async () => {
   await loadTransactions(current_month.value, current_year.value);
   await loadYear();
-  await loadPurposes();
+  await loadPurposes(current_month.value, current_year.value);
 });
 </script>
 <template>
@@ -473,10 +506,15 @@ onMounted(async () => {
           selected_purpose_id !== null && selected_purpose_id === purpose.id
             ? 'bg-red-900 text-white'
             : 'bg-gray-200'
-        } mb-2 mr-2 shadow-sm rounded-4xl text-xs`"
+        } mb-2 mr-2 shadow-sm rounded-4xl text-xs relative`"
         @click.prevent="handleFilterByPurpose(purpose.id)"
       >
         {{ purpose.name }}
+        <span
+          class="count-badge text-center font-bold"
+          v-if="purpose.count_per_purpose > 0"
+          >{{ purpose.count_per_purpose }}</span
+        >
       </button>
 
       <!-- Card -->

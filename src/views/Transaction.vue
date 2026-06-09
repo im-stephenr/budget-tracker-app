@@ -129,7 +129,7 @@ const loadCategories = async () => {
 const loadPurposes = async () => {
   const db = getDB();
   try {
-    let fetch = await db.query("SELECT * FROM purposes");
+    let fetch = await db.query("SELECT * FROM purposes ORDER BY name ASC");
     if (fetch.values.length > 0) {
       purposes.value = fetch.values;
     }

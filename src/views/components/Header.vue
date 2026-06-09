@@ -17,7 +17,7 @@ const props = defineProps({
           viewBox="0 0 20 20"
           stroke-width="1.5"
           stroke="currentColor"
-          class="size-6 text-white"
+          class="size-6 text-[#8C1007]"
         >
           <path
             stroke-linecap="round"
@@ -27,10 +27,11 @@ const props = defineProps({
         </svg>
       </router-link>
     </div>
-    <div class="h-20 ml-10 flex">
-      <span class="text-2xl mt-10 text-white text-shadow-lg">
+    <div class="h-20 ml-5 flex">
+      <span class="text-2xl mt-10 text-[#fff] text-shadow-md">
         {{ props.pageName }}
       </span>
     </div>
+    <img class="piggy" src="/images/pighide.png"></img>
   </header>
 </template>
