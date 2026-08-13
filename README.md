@@ -1,4 +1,4 @@
-# Car Loan Payment Tracker Mobile App
+# BUDGET Tracker Mobile App
 
 <h1>📊 Budget Tracker App</h1>
 
