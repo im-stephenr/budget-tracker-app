@@ -71,3 +71,7 @@ npx cap sync
   <p>
     Contributions are welcome! Feel free to fork this repository, submit issues, or create pull requests.
   </p>
+
+ <img width="1080" height="2340" alt="Screenshot_20260813_104045_Budget Tracker" src="https://github.com/user-attachments/assets/8e8541f2-a59c-41ba-b800-8b07aa6cdecb" />
+
+
